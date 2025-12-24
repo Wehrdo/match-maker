@@ -74,9 +74,26 @@ export const getMatchPath = (idx1: number, idx2: number, grid: CellValue[], cols
     const startRow = Math.floor(start / cols);
     const endRow = Math.floor(end / cols);
     
-    // Wrap-around: different rows AND column decreases (path crosses row boundary backwards)
-    const isWrap = startRow !== endRow && startCol > endCol;
-    return isWrap ? 'sequential-wrap' : 'sequential';
+    // Same row: no wrap possible
+    if (startRow === endRow) {
+      return 'sequential';
+    }
+    
+    // Different rows - check if cells are "visually adjacent" 
+    // (diagonally adjacent or vertically adjacent via visual position)
+    const rowDiff = endRow - startRow;
+    const colDiff = Math.abs(endCol - startCol);
+    
+    // Visually adjacent: adjacent rows AND (same column OR adjacent columns)
+    // These should show as straight lines for intuitive UX
+    const isVisuallyAdjacent = rowDiff === 1 && colDiff <= 1;
+    
+    if (isVisuallyAdjacent) {
+      return 'sequential';
+    }
+    
+    // All other cross-row sequential paths wrap around
+    return 'sequential-wrap';
   }
 
   // Check horizontal path (same row)
