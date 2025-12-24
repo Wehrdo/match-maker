@@ -179,8 +179,11 @@ const App: React.FC = () => {
   const isWin = useMemo(() => grid.length > 0 && grid.every(v => v === null), [grid]);
 
   return (
-    <div className="max-w-md mx-auto min-h-screen flex flex-col p-4 bg-slate-50 relative">
-      <header className="flex justify-between items-center mb-4 pt-2">
+    <div 
+      className="max-w-md mx-auto min-h-screen flex flex-col p-4 bg-slate-50 relative"
+      onClick={() => setSelectedIdx(null)}
+    >
+      <header className="flex justify-between items-center mb-4 pt-2" onClick={(e) => e.stopPropagation()}>
         <div>
           <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">TEN MASTER</h1>
           <p className="text-[10px] text-slate-500 uppercase font-bold tracking-widest">Puzzle Challenge</p>
@@ -196,7 +199,7 @@ const App: React.FC = () => {
         className="flex-1 bg-white border-t border-l border-slate-200 shadow-sm overflow-y-auto max-h-[65vh] relative"
       >
         {isWin ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8">
+          <div className="h-full flex flex-col items-center justify-center text-center p-8" onClick={(e) => e.stopPropagation()}>
             <div className="text-6xl mb-4 animate-bounce">🏆</div>
             <h2 className="text-2xl font-black text-slate-900">VICTORY!</h2>
             <p className="text-slate-500 mb-6">You've cleared the board like a master.</p>
@@ -211,6 +214,7 @@ const App: React.FC = () => {
           <div 
             className="grid"
             style={{ gridTemplateColumns: `repeat(${GRID_COLUMNS}, 1fr)` }}
+            onClick={(e) => e.stopPropagation()}
           >
             {grid.map((val, idx) => (
               <NumberCell
@@ -249,15 +253,17 @@ const App: React.FC = () => {
             `}</style>
           </svg>
         )}
+
+        {message && (
+          <div className="absolute bottom-4 inset-x-0 flex justify-center z-50 pointer-events-none">
+            <div className="bg-slate-900 text-white text-[10px] px-4 py-2 rounded-full shadow-2xl animate-bounce uppercase font-bold tracking-widest whitespace-nowrap">
+              {message}
+            </div>
+          </div>
+        )}
       </div>
 
-      {message && (
-        <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-4 py-2 rounded-full shadow-2xl z-50 animate-bounce uppercase font-bold tracking-widest whitespace-nowrap">
-          {message}
-        </div>
-      )}
-
-      <div className="mt-4 flex justify-between px-2">
+      <div className="mt-4 flex justify-between px-2" onClick={(e) => e.stopPropagation()}>
         {stats.map(s => (
           <div 
             key={s.num}
@@ -270,7 +276,7 @@ const App: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-2 mt-4 pb-4">
+      <div className="grid grid-cols-2 gap-2 mt-4 pb-4" onClick={(e) => e.stopPropagation()}>
         <button 
           onClick={handleRefill}
           disabled={refillsRemaining === 0}
@@ -280,11 +286,6 @@ const App: React.FC = () => {
         >
           <i className="fa-solid fa-layer-group text-sm mb-1"></i>
           <span className="text-[9px] font-black">REFILL ({refillsRemaining})</span>
-        </button>
-
-        <button onClick={() => setSelectedIdx(null)} className="bg-white border border-slate-200 flex flex-col items-center justify-center py-3 rounded-xl shadow-sm text-slate-700">
-          <i className="fa-solid fa-eraser text-sm mb-1 text-slate-400"></i>
-          <span className="text-[9px] font-black uppercase tracking-tighter">Clear</span>
         </button>
 
         <button onClick={handleReset} className="bg-white border border-slate-200 flex flex-col items-center justify-center py-3 rounded-xl shadow-sm text-slate-700">
