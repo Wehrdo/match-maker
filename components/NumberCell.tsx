@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CellValue } from '../types';
+import { CellValue } from '../types.ts';
 
 interface NumberCellProps {
   value: CellValue;

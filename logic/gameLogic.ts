@@ -1,4 +1,5 @@
-import { CellValue } from '../types';
+
+import { CellValue } from '../types.ts';
 
 export const GRID_COLUMNS = 10;
 export const INITIAL_FILL_COUNT = 35; // Configurable initial count

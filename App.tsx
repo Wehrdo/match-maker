@@ -8,9 +8,9 @@ import {
   GRID_COLUMNS, 
   INITIAL_FILL_COUNT, 
   MAX_REFILLS 
-} from './logic/gameLogic';
-import { CellValue } from './types';
-import NumberCell from './components/NumberCell';
+} from './logic/gameLogic.ts';
+import { CellValue } from './types.ts';
+import NumberCell from './components/NumberCell.tsx';
 
 interface MatchLine {
   x1: number;
