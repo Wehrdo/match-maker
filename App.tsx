@@ -72,6 +72,8 @@ const App: React.FC = () => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [undoUsed, setUndoUsed] = useState(false);
   const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
+  const [showWinAnimation, setShowWinAnimation] = useState(false);
+  const [winAnimationComplete, setWinAnimationComplete] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Load saved game or create new one on mount
@@ -90,9 +92,15 @@ const App: React.FC = () => {
   }, []);
 
   // Save game state whenever it changes (after initialization)
+  // Clear saved state when game is won (grid is empty)
   useEffect(() => {
-    if (isInitialized && grid.length > 0) {
-      saveGameState({ grid, refillsRemaining, score, undoUsed, undoSnapshot });
+    if (isInitialized) {
+      if (grid.length > 0) {
+        saveGameState({ grid, refillsRemaining, score, undoUsed, undoSnapshot });
+      } else {
+        // Game won - clear saved state so refresh starts fresh
+        clearGameState();
+      }
     }
   }, [grid, refillsRemaining, score, undoUsed, undoSnapshot, isInitialized]);
 
@@ -191,14 +199,20 @@ const App: React.FC = () => {
 
   const handleReset = () => {
     if (confirm("Reset the game?")) {
-      clearGameState();
-      setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
-      setRefillsRemaining(MAX_REFILLS);
-      setScore(0);
-      setSelectedIdx(null);
-      setUndoUsed(false);
-      setUndoSnapshot(null);
+      startNewGame();
     }
+  };
+
+  const startNewGame = () => {
+    clearGameState();
+    setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
+    setRefillsRemaining(MAX_REFILLS);
+    setScore(0);
+    setSelectedIdx(null);
+    setUndoUsed(false);
+    setUndoSnapshot(null);
+    setShowWinAnimation(false);
+    setWinAnimationComplete(false);
   };
 
   const stats = useMemo(() => {
@@ -209,7 +223,30 @@ const App: React.FC = () => {
     }));
   }, [grid]);
 
-  const isWin = useMemo(() => grid.length > 0 && grid.every(v => v === null), [grid]);
+  // Win when grid becomes empty (all rows collapsed) after initialization
+  const isWin = useMemo(() => isInitialized && grid.length === 0, [grid, isInitialized]);
+
+  // Generate stable confetti particles once
+  const confettiParticles = useMemo(() => 
+    [...Array(50)].map((_, i) => ({
+      left: Math.random() * 100,
+      duration: 2 + Math.random() * 2,
+      delay: Math.random() * 0.5,
+      rotation: Math.random() * 360,
+      color: ['#3b82f6', '#ef4444', '#22c55e', '#f59e0b', '#a855f7', '#ec4899'][i % 6],
+    })), 
+  []);
+
+  // Trigger win animation when game is won
+  useEffect(() => {
+    if (isWin && !showWinAnimation) {
+      setShowWinAnimation(true);
+      // Animation phases complete after 3 seconds
+      setTimeout(() => {
+        setWinAnimationComplete(true);
+      }, 3000);
+    }
+  }, [isWin, showWinAnimation]);
 
   return (
     <div 
@@ -232,16 +269,146 @@ const App: React.FC = () => {
         className="flex-1 bg-white border-t border-l border-slate-200 shadow-sm overflow-y-auto max-h-[65vh] relative"
       >
         {isWin ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8" onClick={(e) => e.stopPropagation()}>
-            <div className="text-6xl mb-4 animate-bounce">🏆</div>
-            <h2 className="text-2xl font-black text-slate-900">VICTORY!</h2>
-            <p className="text-slate-500 mb-6">You've cleared the board like a master.</p>
-            <button 
-              onClick={handleReset}
-              className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-lg"
+          <div className="h-full flex flex-col items-center justify-center text-center p-8 relative overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Confetti particles */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden">
+              {showWinAnimation && confettiParticles.map((particle, i) => (
+                <div
+                  key={i}
+                  className="absolute w-3 h-3 rounded-sm"
+                  style={{
+                    left: `${particle.left}%`,
+                    top: '-20px',
+                    backgroundColor: particle.color,
+                    animation: `confettiFall ${particle.duration}s ease-out ${particle.delay}s forwards`,
+                    transform: `rotate(${particle.rotation}deg)`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* Radial burst effect */}
+            <div 
+              className={`absolute inset-0 pointer-events-none ${showWinAnimation ? 'animate-ping' : ''}`}
+              style={{
+                background: 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)',
+                animationDuration: '1s',
+                animationIterationCount: '1',
+              }}
+            />
+
+            {/* Trophy with scaling animation */}
+            <div 
+              className={`text-7xl mb-4 ${showWinAnimation ? 'trophy-entrance' : ''}`}
+              style={{
+                filter: 'drop-shadow(0 4px 20px rgba(251, 191, 36, 0.5))',
+              }}
             >
+              🏆
+            </div>
+
+            {/* Title with staggered letter animation */}
+            <h2 className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 mb-2 victory-text">
+              VICTORY!
+            </h2>
+
+            {/* Score display with pop animation */}
+            <div className={`text-5xl font-black text-blue-600 mb-2 ${showWinAnimation ? 'score-pop' : ''}`}>
+              {score}
+            </div>
+            <p className="text-sm text-slate-400 font-bold uppercase tracking-widest mb-4">Final Score</p>
+
+            <p className="text-slate-500 mb-6 fade-in-up">You've cleared the board like a true master!</p>
+            
+            {/* New Game button - only shows after animation completes */}
+            <button 
+              onClick={startNewGame}
+              className={`bg-gradient-to-r from-blue-600 to-purple-600 text-white px-10 py-4 rounded-xl font-bold hover:from-blue-700 hover:to-purple-700 shadow-xl transform transition-all duration-300 hover:scale-105 ${
+                winAnimationComplete ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+              }`}
+            >
+              <i className="fa-solid fa-play mr-2"></i>
               NEW GAME
             </button>
+
+            <style>{`
+              @keyframes confettiFall {
+                0% {
+                  transform: translateY(0) rotate(0deg);
+                  opacity: 1;
+                }
+                100% {
+                  transform: translateY(500px) rotate(720deg);
+                  opacity: 0;
+                }
+              }
+              
+              .trophy-entrance {
+                animation: trophyBounce 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+              }
+              
+              @keyframes trophyBounce {
+                0% {
+                  transform: scale(0) rotate(-20deg);
+                  opacity: 0;
+                }
+                50% {
+                  transform: scale(1.3) rotate(10deg);
+                }
+                70% {
+                  transform: scale(0.9) rotate(-5deg);
+                }
+                100% {
+                  transform: scale(1) rotate(0deg);
+                  opacity: 1;
+                }
+              }
+              
+              .victory-text {
+                animation: victoryShine 2s ease-in-out infinite;
+              }
+              
+              @keyframes victoryShine {
+                0%, 100% {
+                  background-size: 200% 200%;
+                  background-position: left center;
+                }
+                50% {
+                  background-size: 200% 200%;
+                  background-position: right center;
+                }
+              }
+              
+              .score-pop {
+                animation: scorePop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) 0.3s both;
+              }
+              
+              @keyframes scorePop {
+                0% {
+                  transform: scale(0);
+                  opacity: 0;
+                }
+                100% {
+                  transform: scale(1);
+                  opacity: 1;
+                }
+              }
+              
+              .fade-in-up {
+                animation: fadeInUp 0.5s ease-out 0.5s both;
+              }
+              
+              @keyframes fadeInUp {
+                0% {
+                  transform: translateY(20px);
+                  opacity: 0;
+                }
+                100% {
+                  transform: translateY(0);
+                  opacity: 1;
+                }
+              }
+            `}</style>
           </div>
         ) : (
           <div 
