@@ -19,6 +19,42 @@ interface MatchLine {
   y2: number;
 }
 
+interface SavedGameState {
+  grid: CellValue[];
+  refillsRemaining: number;
+  score: number;
+}
+
+const STORAGE_KEY = 'tenmaster-save';
+
+const loadGameState = (): SavedGameState | null => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved) as SavedGameState;
+    }
+  } catch (e) {
+    console.warn('Failed to load saved game:', e);
+  }
+  return null;
+};
+
+const saveGameState = (state: SavedGameState) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch (e) {
+    console.warn('Failed to save game:', e);
+  }
+};
+
+const clearGameState = () => {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch (e) {
+    console.warn('Failed to clear saved game:', e);
+  }
+};
+
 const App: React.FC = () => {
   const [grid, setGrid] = useState<CellValue[]>([]);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
@@ -26,11 +62,28 @@ const App: React.FC = () => {
   const [score, setScore] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const [activeMatchLine, setActiveMatchLine] = useState<MatchLine | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // Load saved game or create new one on mount
   useEffect(() => {
-    setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
+    const saved = loadGameState();
+    if (saved && saved.grid.length > 0) {
+      setGrid(saved.grid);
+      setRefillsRemaining(saved.refillsRemaining);
+      setScore(saved.score);
+    } else {
+      setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
+    }
+    setIsInitialized(true);
   }, []);
+
+  // Save game state whenever it changes (after initialization)
+  useEffect(() => {
+    if (isInitialized && grid.length > 0) {
+      saveGameState({ grid, refillsRemaining, score });
+    }
+  }, [grid, refillsRemaining, score, isInitialized]);
 
   const possibleMatchIndices = useMemo(() => {
     if (selectedIdx === null) return new Set<number>();
@@ -107,6 +160,7 @@ const App: React.FC = () => {
 
   const handleReset = () => {
     if (confirm("Reset the game?")) {
+      clearGameState();
       setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
       setRefillsRemaining(MAX_REFILLS);
       setScore(0);
