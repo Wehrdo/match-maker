@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { 
   createInitialGrid, 
   areMatchable, 
+  getMatchPath,
   collapseEmptyRows, 
   refillGrid, 
   GRID_COLUMNS, 
@@ -12,11 +13,15 @@ import {
 import { CellValue } from './types.ts';
 import NumberCell from './components/NumberCell.tsx';
 
-interface MatchLine {
+interface LineSegment {
   x1: number;
   y1: number;
   x2: number;
   y2: number;
+}
+
+interface MatchLine {
+  segments: LineSegment[];
 }
 
 interface UndoSnapshot {
@@ -125,12 +130,34 @@ const App: React.FC = () => {
       const rect2 = el2.getBoundingClientRect();
       const containerRect = container.getBoundingClientRect();
 
-      setActiveMatchLine({
-        x1: rect1.left + rect1.width / 2 - containerRect.left,
-        y1: rect1.top + rect1.height / 2 - containerRect.top,
-        x2: rect2.left + rect2.width / 2 - containerRect.left,
-        y2: rect2.top + rect2.height / 2 - containerRect.top,
-      });
+      const x1 = rect1.left + rect1.width / 2 - containerRect.left;
+      const y1 = rect1.top + rect1.height / 2 - containerRect.top;
+      const x2 = rect2.left + rect2.width / 2 - containerRect.left;
+      const y2 = rect2.top + rect2.height / 2 - containerRect.top;
+
+      // Use the same path detection logic as the game matching
+      const matchPath = getMatchPath(idx1, idx2, grid, GRID_COLUMNS);
+
+      if (matchPath === 'sequential-wrap') {
+        // Wrap-around match: draw lines showing the wrap
+        // Line 1: from first cell to the right edge of its row
+        // Line 2: from the left edge to the second cell
+        const cellWidth = rect1.width;
+        const rightEdge = containerRect.width - cellWidth / 2 + 4;
+        const leftEdge = cellWidth / 2 - 4;
+
+        setActiveMatchLine({
+          segments: [
+            { x1, y1, x2: rightEdge, y2: y1 },
+            { x1: leftEdge, y1: y2, x2, y2 },
+          ]
+        });
+      } else {
+        // All other match types: draw a straight line
+        setActiveMatchLine({
+          segments: [{ x1, y1, x2, y2 }]
+        });
+      }
 
       setTimeout(() => setActiveMatchLine(null), 600);
     }
@@ -431,19 +458,22 @@ const App: React.FC = () => {
 
         {activeMatchLine && (
           <svg className="absolute inset-0 pointer-events-none w-full h-full z-20">
-            <line 
-              x1={activeMatchLine.x1} 
-              y1={activeMatchLine.y1} 
-              x2={activeMatchLine.x2} 
-              y2={activeMatchLine.y2} 
-              stroke="#3b82f6" 
-              strokeWidth="4" 
-              strokeLinecap="round"
-              className="animate-pulse opacity-0"
-              style={{
-                animation: 'fadeLine 0.6s ease-out forwards'
-              }}
-            />
+            {activeMatchLine.segments.map((seg, i) => (
+              <line 
+                key={i}
+                x1={seg.x1} 
+                y1={seg.y1} 
+                x2={seg.x2} 
+                y2={seg.y2} 
+                stroke="#3b82f6" 
+                strokeWidth="4" 
+                strokeLinecap="round"
+                className="animate-pulse opacity-0"
+                style={{
+                  animation: 'fadeLine 0.6s ease-out forwards'
+                }}
+              />
+            ))}
             <style>{`
               @keyframes fadeLine {
                 0% { opacity: 0; stroke-width: 8; }
