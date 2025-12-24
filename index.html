@@ -36,23 +36,22 @@
             background: #94a3b8;
         }
     </style>
-    <!-- Import Map for dependencies -->
     <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@^19.2.3",
-        "react/": "https://esm.sh/react@^19.2.3/",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-        "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client"
-      }
-    }
-    </script>
-    <!-- Babel Standalone for in-browser transpilation -->
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom": "https://esm.sh/react-dom@^19.2.3",
+    "react-dom/client": "https://esm.sh/react-dom@^19.2.3/client",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/"
+  }
+}
+</script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
 <body class="bg-slate-50 min-h-screen">
     <div id="root"></div>
-    <!-- Entry point using Babel to handle TSX/JSX -->
-    <script type="text/babel" data-type="module" data-presets="typescript,react" src="./index.tsx"></script>
+    <!-- Load the consolidated app as a single Babel script to avoid MIME type issues with relative imports -->
+    <script type="text/babel" data-presets="typescript,react" src="./index.tsx"></script>
 </body>
 </html>
