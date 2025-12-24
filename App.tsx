@@ -19,10 +19,17 @@ interface MatchLine {
   y2: number;
 }
 
+interface UndoSnapshot {
+  grid: CellValue[];
+  score: number;
+}
+
 interface SavedGameState {
   grid: CellValue[];
   refillsRemaining: number;
   score: number;
+  undoUsed: boolean;
+  undoSnapshot: UndoSnapshot | null;
 }
 
 const STORAGE_KEY = 'tenmaster-save';
@@ -63,6 +70,8 @@ const App: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
   const [activeMatchLine, setActiveMatchLine] = useState<MatchLine | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [undoUsed, setUndoUsed] = useState(false);
+  const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
 
   // Load saved game or create new one on mount
@@ -72,6 +81,8 @@ const App: React.FC = () => {
       setGrid(saved.grid);
       setRefillsRemaining(saved.refillsRemaining);
       setScore(saved.score);
+      setUndoUsed(saved.undoUsed ?? false);
+      setUndoSnapshot(saved.undoSnapshot ?? null);
     } else {
       setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
     }
@@ -81,9 +92,9 @@ const App: React.FC = () => {
   // Save game state whenever it changes (after initialization)
   useEffect(() => {
     if (isInitialized && grid.length > 0) {
-      saveGameState({ grid, refillsRemaining, score });
+      saveGameState({ grid, refillsRemaining, score, undoUsed, undoSnapshot });
     }
-  }, [grid, refillsRemaining, score, isInitialized]);
+  }, [grid, refillsRemaining, score, undoUsed, undoSnapshot, isInitialized]);
 
   const possibleMatchIndices = useMemo(() => {
     if (selectedIdx === null) return new Set<number>();
@@ -126,6 +137,11 @@ const App: React.FC = () => {
       setSelectedIdx(null);
     } else {
       if (areMatchable(selectedIdx, idx, grid, GRID_COLUMNS)) {
+        // Save snapshot for undo (only if undo hasn't been used yet)
+        if (!undoUsed) {
+          setUndoSnapshot({ grid: [...grid], score });
+        }
+        
         triggerMatchLine(selectedIdx, idx);
         
         const newGrid = [...grid];
@@ -158,6 +174,21 @@ const App: React.FC = () => {
     setTimeout(() => setMessage(null), 1200);
   };
 
+  const handleUndo = () => {
+    if (undoUsed || !undoSnapshot) {
+      setMessage("No undo available!");
+      setTimeout(() => setMessage(null), 1200);
+      return;
+    }
+    setGrid(undoSnapshot.grid);
+    setScore(undoSnapshot.score);
+    setUndoUsed(true);
+    setUndoSnapshot(null);
+    setSelectedIdx(null);
+    setMessage("Move undone!");
+    setTimeout(() => setMessage(null), 1200);
+  };
+
   const handleReset = () => {
     if (confirm("Reset the game?")) {
       clearGameState();
@@ -165,6 +196,8 @@ const App: React.FC = () => {
       setRefillsRemaining(MAX_REFILLS);
       setScore(0);
       setSelectedIdx(null);
+      setUndoUsed(false);
+      setUndoSnapshot(null);
     }
   };
 
@@ -276,7 +309,7 @@ const App: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-2 mt-4 pb-4" onClick={(e) => e.stopPropagation()}>
+      <div className="grid grid-cols-3 gap-2 mt-4 pb-4" onClick={(e) => e.stopPropagation()}>
         <button 
           onClick={handleRefill}
           disabled={refillsRemaining === 0}
@@ -286,6 +319,17 @@ const App: React.FC = () => {
         >
           <i className="fa-solid fa-layer-group text-sm mb-1"></i>
           <span className="text-[9px] font-black">REFILL ({refillsRemaining})</span>
+        </button>
+
+        <button 
+          onClick={handleUndo}
+          disabled={undoUsed || !undoSnapshot}
+          className={`flex flex-col items-center justify-center py-3 rounded-xl transition-all shadow-sm ${
+            !undoUsed && undoSnapshot ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-400'
+          }`}
+        >
+          <i className="fa-solid fa-arrow-rotate-left text-sm mb-1"></i>
+          <span className="text-[9px] font-black">UNDO {undoUsed ? '(USED)' : '(1)'}</span>
         </button>
 
         <button onClick={handleReset} className="bg-white border border-slate-200 flex flex-col items-center justify-center py-3 rounded-xl shadow-sm text-slate-700">
