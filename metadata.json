@@ -1,0 +1,5 @@
+{
+  "name": "Ten Match Master",
+  "description": "A high-stakes numerical puzzle game where you match pairs that sum to 10 or are identical. Clear the board by finding sequential, vertical, horizontal, or diagonal pairs with no obstacles between them.",
+  "requestFramePermissions": []
+}
