@@ -8,9 +8,9 @@ import {
   GRID_COLUMNS, 
   INITIAL_FILL_COUNT, 
   MAX_REFILLS 
-} from './logic/gameLogic';
-import { CellValue } from './types';
-import NumberCell from './components/NumberCell';
+} from './logic/gameLogic.ts';
+import { CellValue } from './types.ts';
+import NumberCell from './components/NumberCell.tsx';
 
 interface MatchLine {
   x1: number;
@@ -32,7 +32,6 @@ const App: React.FC = () => {
     setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
   }, []);
 
-  // Compute indices of numbers that match with the currently selected number
   const possibleMatchIndices = useMemo(() => {
     if (selectedIdx === null) return new Set<number>();
     const matches = new Set<number>();
@@ -83,7 +82,6 @@ const App: React.FC = () => {
         setScore(prev => prev + 10);
         setSelectedIdx(null);
         
-        // Delay collapsing slightly to let the line animation breathe
         setTimeout(() => {
           setGrid(prev => collapseEmptyRows(newGrid, GRID_COLUMNS));
           setMessage("Nice match!");
@@ -173,7 +171,6 @@ const App: React.FC = () => {
           </div>
         )}
 
-        {/* Match Line Overlay */}
         {activeMatchLine && (
           <svg className="absolute inset-0 pointer-events-none w-full h-full z-20">
             <line 
@@ -200,14 +197,12 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Floating Message */}
       {message && (
         <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-4 py-2 rounded-full shadow-2xl z-50 animate-bounce uppercase font-bold tracking-widest whitespace-nowrap">
           {message}
         </div>
       )}
 
-      {/* Number Stats */}
       <div className="mt-4 flex justify-between px-2">
         {stats.map(s => (
           <div 

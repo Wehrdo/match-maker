@@ -1,8 +1,8 @@
 
-import { CellValue } from '../types';
+import { CellValue } from '../types.ts';
 
 export const GRID_COLUMNS = 10;
-export const INITIAL_FILL_COUNT = 35; // Configurable initial count
+export const INITIAL_FILL_COUNT = 35;
 export const MAX_REFILLS = 5;
 
 export const createInitialGrid = (cols: number, fillCount: number): CellValue[] => {
@@ -10,7 +10,6 @@ export const createInitialGrid = (cols: number, fillCount: number): CellValue[] 
   for (let i = 0; i < fillCount; i++) {
     grid.push(Math.floor(Math.random() * 9) + 1);
   }
-  // Pad to complete the last row if necessary to maintain grid shape
   const remainingInRow = cols - (grid.length % cols);
   if (remainingInRow < cols && remainingInRow !== 0) {
     for (let i = 0; i < remainingInRow; i++) {
@@ -45,7 +44,6 @@ export const areMatchable = (idx1: number, idx2: number, grid: CellValue[], cols
   const absDx = Math.abs(dx);
   const absDy = Math.abs(dy);
 
-  // Sequential Check (Reading order)
   const [start, end] = idx1 < idx2 ? [idx1, idx2] : [idx2, idx1];
   let sequentialClear = true;
   for (let i = start + 1; i < end; i++) {
@@ -56,7 +54,6 @@ export const areMatchable = (idx1: number, idx2: number, grid: CellValue[], cols
   }
   if (sequentialClear) return true;
 
-  // Horizontal
   if (pos1.y === pos2.y) {
     const minX = Math.min(pos1.x, pos2.x);
     const maxX = Math.max(pos1.x, pos2.x);
@@ -66,7 +63,6 @@ export const areMatchable = (idx1: number, idx2: number, grid: CellValue[], cols
     return true;
   }
 
-  // Vertical
   if (pos1.x === pos2.x) {
     const minY = Math.min(pos1.y, pos2.y);
     const maxY = Math.max(pos1.y, pos2.y);
@@ -76,7 +72,6 @@ export const areMatchable = (idx1: number, idx2: number, grid: CellValue[], cols
     return true;
   }
 
-  // Diagonal
   if (absDx === absDy) {
     const stepX = dx / (absDx || 1);
     const stepY = dy / (absDy || 1);
@@ -107,7 +102,6 @@ export const collapseEmptyRows = (grid: CellValue[], cols: number): CellValue[] 
 export const refillGrid = (grid: CellValue[], cols: number): CellValue[] => {
   const existingNumbers = grid.filter(val => val !== null);
   
-  // Find the last index of a non-null value in the current grid
   let lastIndex = -1;
   for (let i = grid.length - 1; i >= 0; i--) {
     if (grid[i] !== null) {
@@ -116,16 +110,13 @@ export const refillGrid = (grid: CellValue[], cols: number): CellValue[] => {
     }
   }
 
-  // If the grid is empty, start fresh
   if (lastIndex === -1) {
     return createInitialGrid(cols, INITIAL_FILL_COUNT);
   }
 
-  // Remove any trailing nulls from the current grid so the refill starts immediately after the last number
   const prunedGrid = grid.slice(0, lastIndex + 1);
   const nextGrid = [...prunedGrid, ...existingNumbers];
 
-  // Pad the new total length to complete the last row
   const remainingInRow = cols - (nextGrid.length % cols);
   if (remainingInRow < cols && remainingInRow !== 0) {
     for (let i = 0; i < remainingInRow; i++) {

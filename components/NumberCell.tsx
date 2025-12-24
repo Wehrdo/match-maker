@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { CellValue } from '../types';
+import { CellValue } from '../types.ts';
 
 interface NumberCellProps {
   value: CellValue;
@@ -22,7 +22,6 @@ const NumberCell: React.FC<NumberCellProps> = ({ value, isSelected, isPossibleMa
     selectionStyles = "bg-blue-500 text-white z-10 shadow-inner";
   }
 
-  // Highlight possible matches with a light blue border
   const matchIndicator = isPossibleMatch ? (
     <div className="absolute inset-0 border-4 border-blue-300/60 pointer-events-none rounded-sm z-20"></div>
   ) : null;
