@@ -1,4 +1,3 @@
-
 import { CellValue } from '../types';
 
 export const GRID_COLUMNS = 10;
@@ -12,7 +11,7 @@ export const createInitialGrid = (cols: number, fillCount: number): CellValue[] 
   }
   // Pad to complete the last row if necessary to maintain grid shape
   const remainingInRow = cols - (grid.length % cols);
-  if (remainingInRow < cols) {
+  if (remainingInRow < cols && remainingInRow !== 0) {
     for (let i = 0; i < remainingInRow; i++) {
       grid.push(null);
     }
@@ -78,8 +77,8 @@ export const areMatchable = (idx1: number, idx2: number, grid: CellValue[], cols
 
   // Diagonal
   if (absDx === absDy) {
-    const stepX = dx / absDx;
-    const stepY = dy / absDy;
+    const stepX = dx / (absDx || 1);
+    const stepY = dy / (absDy || 1);
     for (let i = 1; i < absDx; i++) {
       const curX = pos1.x + i * stepX;
       const curY = pos1.y + i * stepY;
@@ -106,10 +105,28 @@ export const collapseEmptyRows = (grid: CellValue[], cols: number): CellValue[] 
 
 export const refillGrid = (grid: CellValue[], cols: number): CellValue[] => {
   const existingNumbers = grid.filter(val => val !== null);
-  const nextGrid = [...grid, ...existingNumbers];
-  // Pad the new total length to complete the row
+  
+  // Find the last index of a non-null value in the current grid
+  let lastIndex = -1;
+  for (let i = grid.length - 1; i >= 0; i--) {
+    if (grid[i] !== null) {
+      lastIndex = i;
+      break;
+    }
+  }
+
+  // If the grid is empty, start fresh
+  if (lastIndex === -1) {
+    return createInitialGrid(cols, INITIAL_FILL_COUNT);
+  }
+
+  // Remove any trailing nulls from the current grid so the refill starts immediately after the last number
+  const prunedGrid = grid.slice(0, lastIndex + 1);
+  const nextGrid = [...prunedGrid, ...existingNumbers];
+
+  // Pad the new total length to complete the last row
   const remainingInRow = cols - (nextGrid.length % cols);
-  if (remainingInRow < cols) {
+  if (remainingInRow < cols && remainingInRow !== 0) {
     for (let i = 0; i < remainingInRow; i++) {
       nextGrid.push(null);
     }

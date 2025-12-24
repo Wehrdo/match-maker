@@ -11,7 +11,6 @@ import {
 } from './logic/gameLogic';
 import { CellValue } from './types';
 import NumberCell from './components/NumberCell';
-import { getHintFromGemini } from './services/geminiService';
 
 interface MatchLine {
   x1: number;
@@ -25,8 +24,6 @@ const App: React.FC = () => {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [refillsRemaining, setRefillsRemaining] = useState(MAX_REFILLS);
   const [score, setScore] = useState(0);
-  const [hintIndices, setHintIndices] = useState<[number, number] | null>(null);
-  const [loadingHint, setLoadingHint] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [activeMatchLine, setActiveMatchLine] = useState<MatchLine | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -73,7 +70,6 @@ const App: React.FC = () => {
 
     if (selectedIdx === null) {
       setSelectedIdx(idx);
-      setHintIndices(null);
     } else if (selectedIdx === idx) {
       setSelectedIdx(null);
     } else {
@@ -86,7 +82,6 @@ const App: React.FC = () => {
         
         setScore(prev => prev + 10);
         setSelectedIdx(null);
-        setHintIndices(null);
         
         // Delay collapsing slightly to let the line animation breathe
         setTimeout(() => {
@@ -96,7 +91,6 @@ const App: React.FC = () => {
         }, 300);
       } else {
         setSelectedIdx(idx);
-        setHintIndices(null);
       }
     }
   };
@@ -113,40 +107,12 @@ const App: React.FC = () => {
     setTimeout(() => setMessage(null), 1200);
   };
 
-  const handleHint = async () => {
-    const indices = grid.map((v, i) => v !== null ? i : -1).filter(i => i !== -1);
-    let found = false;
-    for (let i = 0; i < indices.length; i++) {
-      for (let j = i + 1; j < indices.length; j++) {
-        if (areMatchable(indices[i], indices[j], grid, GRID_COLUMNS)) {
-          setHintIndices([indices[i], indices[j]]);
-          found = true;
-          break;
-        }
-      }
-      if (found) break;
-    }
-
-    if (!found) {
-      setLoadingHint(true);
-      const hint = await getHintFromGemini(grid, GRID_COLUMNS);
-      setLoadingHint(false);
-      if (hint && areMatchable(hint.idx1, hint.idx2, grid, GRID_COLUMNS)) {
-        setHintIndices([hint.idx1, hint.idx2]);
-      } else {
-        setMessage("No matches found!");
-        setTimeout(() => setMessage(null), 1500);
-      }
-    }
-  };
-
   const handleReset = () => {
     if (confirm("Reset the game?")) {
       setGrid(createInitialGrid(GRID_COLUMNS, INITIAL_FILL_COUNT));
       setRefillsRemaining(MAX_REFILLS);
       setScore(0);
       setSelectedIdx(null);
-      setHintIndices(null);
     }
   };
 
@@ -200,7 +166,6 @@ const App: React.FC = () => {
                 id={`cell-${idx}`}
                 value={val}
                 isSelected={selectedIdx === idx}
-                isHint={hintIndices?.includes(idx)}
                 isPossibleMatch={possibleMatchIndices.has(idx)}
                 onClick={() => handleCellClick(idx)}
               />
@@ -235,7 +200,7 @@ const App: React.FC = () => {
         )}
       </div>
 
-      {/* Floating Message - Moved to bottom area */}
+      {/* Floating Message */}
       {message && (
         <div className="fixed bottom-32 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-4 py-2 rounded-full shadow-2xl z-50 animate-bounce uppercase font-bold tracking-widest whitespace-nowrap">
           {message}
@@ -256,7 +221,7 @@ const App: React.FC = () => {
         ))}
       </div>
 
-      <div className="grid grid-cols-4 gap-2 mt-4 pb-4">
+      <div className="grid grid-cols-3 gap-2 mt-4 pb-4">
         <button 
           onClick={handleRefill}
           disabled={refillsRemaining === 0}
@@ -268,12 +233,7 @@ const App: React.FC = () => {
           <span className="text-[9px] font-black">REFILL ({refillsRemaining})</span>
         </button>
 
-        <button onClick={handleHint} disabled={loadingHint} className="bg-white border border-slate-200 flex flex-col items-center justify-center py-3 rounded-xl shadow-sm text-slate-700">
-          <i className={`fa-solid ${loadingHint ? 'fa-spinner animate-spin' : 'fa-wand-magic-sparkles'} text-sm mb-1 text-yellow-500`}></i>
-          <span className="text-[9px] font-black uppercase tracking-tighter">Hint</span>
-        </button>
-
-        <button onClick={() => { setSelectedIdx(null); setHintIndices(null); }} className="bg-white border border-slate-200 flex flex-col items-center justify-center py-3 rounded-xl shadow-sm text-slate-700">
+        <button onClick={() => setSelectedIdx(null)} className="bg-white border border-slate-200 flex flex-col items-center justify-center py-3 rounded-xl shadow-sm text-slate-700">
           <i className="fa-solid fa-eraser text-sm mb-1 text-slate-400"></i>
           <span className="text-[9px] font-black uppercase tracking-tighter">Clear</span>
         </button>
